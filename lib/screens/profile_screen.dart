@@ -53,7 +53,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const SignUpScreen()),
+            MaterialPageRoute(builder: (_) => SignUpScreen()),
           ),
           child: const Text('Sign up'),
         ),

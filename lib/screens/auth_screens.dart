@@ -1,10 +1,28 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_widgets.dart';
 import 'app_shell.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool isObsecured = true;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
@@ -15,6 +33,7 @@ class LoginScreen extends StatelessWidget {
           children: [
             Align(
               alignment: Alignment.centerLeft,
+              // Back button
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back_ios_new),
@@ -22,6 +41,7 @@ class LoginScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 28),
+            // Logo
             const Center(
               child: Column(
                 children: [
@@ -42,7 +62,10 @@ class LoginScreen extends StatelessWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 18),
+
+            // Welcome back text
             const Text(
               'Welcome back',
               style: TextStyle(
@@ -56,50 +79,101 @@ class LoginScreen extends StatelessWidget {
               'Log in to track live crowding & delays on your commute.',
               style: TextStyle(color: Color(0xFF8993A2), fontSize: 12),
             ),
+
             const SizedBox(height: 17),
-            const FieldLabel('Email'),
-            const AppInput(
-              label: 'faiz.ahmad@email.com',
-              icon: Icons.mail_outline,
-            ),
-            const SizedBox(height: 11),
-            const FieldLabel('Password'),
-            const AppInput(
-              label: '••••••••••',
-              icon: Icons.lock_outline,
-              obscure: true,
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  foregroundColor: red,
-                  textStyle: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+
+            // Form
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // Email field
+                  TextFormField(
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      hintText: 'Enter your email',
+                      prefixIcon: Icon(Icons.mail_outline),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Email is required';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-                child: const Text('Forgot Password?'),
+                  const SizedBox(height: 11),
+
+                  // Password field
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: isObsecured,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      hintText: 'Enter your password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        onPressed: () =>
+                            setState(() => isObsecured = !isObsecured),
+                        icon: Icon(
+                          isObsecured
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Forgot password button
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {},
+                      style: TextButton.styleFrom(
+                        foregroundColor: red,
+                        textStyle: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      child: const Text('Forgot Password?'),
+                    ),
+                  ),
+
+                  // Log in button
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: red,
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AppShell(isLoggedIn: true),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Log In'),
+                  ),
+                ],
               ),
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: red,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AppShell(isLoggedIn: true),
-                ),
-              ),
-              child: const Text('Log In'),
-            ),
+            
             const SizedBox(height: 8),
+
             const Row(
               children: [
                 Expanded(child: Divider()),
@@ -114,6 +188,8 @@ class LoginScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
+
+            // Continue with Google button
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(42),
@@ -171,8 +247,31 @@ class LoginScreen extends StatelessWidget {
   );
 }
 
-class SignUpScreen extends StatelessWidget {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
+
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final phoneController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool isObsecured = true;
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
@@ -189,7 +288,9 @@ class SignUpScreen extends StatelessWidget {
                 style: IconButton.styleFrom(backgroundColor: Colors.white),
               ),
             ),
+
             const SizedBox(height: 4),
+            
             const Text(
               'Create account',
               style: TextStyle(
@@ -203,61 +304,161 @@ class SignUpScreen extends StatelessWidget {
               'Join RapidPulse MY to commute smarter, every day.',
               style: TextStyle(color: Color(0xFF8993A2), fontSize: 12),
             ),
+
             const SizedBox(height: 16),
-            const FieldLabel('Full Name'),
-            const AppInput(label: 'Ahmad Faiz', icon: Icons.person_outline),
-            const SizedBox(height: 10),
-            const FieldLabel('Email'),
-            const AppInput(
-              label: 'faiz.ahmad@email.com',
-              icon: Icons.mail_outline,
-            ),
-            const SizedBox(height: 10),
-            const FieldLabel('Phone Number'),
-            const AppInput(
-              label: '+60 12-345 6789',
-              icon: Icons.phone_outlined,
-            ),
-            const SizedBox(height: 10),
-            const FieldLabel('Password'),
-            const AppInput(
-              label: '••••••••••',
-              icon: Icons.lock_outline,
-              obscure: true,
-            ),
-            Row(
-              children: [
-                Checkbox(
-                  value: true,
-                  onChanged: (_) {},
-                  activeColor: red,
-                  visualDensity: VisualDensity.compact,
-                ),
-                const Expanded(
-                  child: Text(
-                    "I agree to RapidPulse MY's Terms of Service and Privacy Policy",
-                    style: TextStyle(fontSize: 9, color: Color(0xFF6B7280)),
+
+            Expanded(
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Full Name',
+                          hintText: 'Enter your full name',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Full name is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 11),
+                      TextFormField(
+                        controller: emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'Enter your email',
+                          prefixIcon: Icon(Icons.mail_outline),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Email is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 11),
+                      TextFormField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone, 
+                        decoration: InputDecoration(
+                          prefixText: '+60 ',
+                          labelText: 'Phone Number',
+                          prefixIcon: Icon(Icons.phone_android_outlined),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Phone number is required';
+                          }
+                          final phoneRegex = RegExp(r'^\d{10,11}$');
+                          if (!phoneRegex.hasMatch(value)) {
+                            return 'Please enter a valid phone number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 11),
+                      TextFormField(
+                        controller: passwordController,
+                        obscureText: isObsecured,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          hintText: 'Enter your password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            onPressed: () =>
+                                setState(() => isObsecured = !isObsecured),
+                            icon: Icon(
+                              isObsecured
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Password is required';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Terms and conditions
+                      FormField<bool>(
+                        initialValue: false,
+                        validator: (value) {
+                          if (value != true) {
+                            return 'You must accept the terms to proceed.';
+                          }
+                          return null;
+                        },
+                        builder: (state) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CheckboxListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text(
+                                  'I agree to the Terms and Conditions',
+                                ),
+                                value: state.value ?? false,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
+                                onChanged: (value) {
+                                  state.didChange(value);
+                                },
+                              ),
+                              if (state.hasError)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 12),
+                                  child: Text(
+                                    state.errorText!,
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .error,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: red,
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AppShell(isLoggedIn: true),
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('Create Account'),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: red,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
               ),
-              onPressed: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AppShell(isLoggedIn: true),
-                ),
-              ),
-              child: const Text('Create Account'),
             ),
-            const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
