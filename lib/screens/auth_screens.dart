@@ -14,6 +14,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
+  // Regular expression pattern for strict email format validation
+  final RegExp _emailRegExp = RegExp(
+    r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+  );
+
   bool isObsecured = true;
 
   @override
@@ -98,6 +103,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Email is required';
+                      }
+                      if (!_emailRegExp.hasMatch(value.trim())) {
+                        return 'Please enter a valid email';
                       }
                       return null;
                     },
@@ -215,7 +223,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
+
             const Spacer(),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -260,6 +270,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
+
+  // Regular expression pattern for strict email format validation
+  final RegExp _emailRegExp = RegExp(
+    r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+  );
 
   bool isObsecured = true;
 
@@ -309,6 +324,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             Expanded(
               child: SingleChildScrollView(
+                //Login Form
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -338,6 +354,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Email is required';
+                          }
+                          if (!_emailRegExp.hasMatch(value.trim())) {
+                            return 'Please enter a valid email';
                           }
                           return null;
                         },
@@ -459,6 +478,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
             ),
+
+            //SignUp Page Button
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -486,19 +507,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ],
         ),
       ),
-    ),
-  );
-}
-
-class FieldLabel extends StatelessWidget {
-  final String text;
-  const FieldLabel(this.text, {super.key});
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 5),
-    child: Text(
-      text,
-      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
     ),
   );
 }
