@@ -196,7 +196,7 @@ class TripCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: .12),
+                    color: color.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Icon(Icons.train_outlined, color: color, size: 19),
@@ -254,7 +254,7 @@ class TripCard extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: .12),
+                    color: color.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(

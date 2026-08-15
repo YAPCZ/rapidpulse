@@ -11,5 +11,4 @@ final appTheme = ThemeData(
   useMaterial3: true,
   colorScheme: ColorScheme.fromSeed(seedColor: red),
   scaffoldBackgroundColor: appBackground,
-  fontFamily: 'Arial',
 );

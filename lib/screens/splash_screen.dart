@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:rapidpulse_my/screens/auth_screens.dart';
 import '../theme/app_theme.dart';
-import 'app_shell.dart';
 
 /// The app's launch screen. New users enter the dashboard as guests.
 class SplashScreen extends StatefulWidget {
@@ -18,7 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const AppShell()),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     });
   }

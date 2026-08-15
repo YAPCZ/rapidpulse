@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'app_shell.dart';
-import '../services/auth_service.dart';
+import 'package:rapidpulse_my/auth_service.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,13 +15,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
-  bool _isGoogleSignInLoading = false;
 
   // Regular expression pattern for strict email format validation
   final RegExp _emailRegExp = RegExp(
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
   );
+
+  final AuthService _authService = AuthService();
 
   bool isObsecured = true;
 
@@ -31,35 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleGoogleSignIn() async {
-    setState(() => _isGoogleSignInLoading = true);
-    try {
-      final userCredential = await _authService.signInWithGoogle();
-      if (userCredential != null && mounted) {
-        // Successfully signed in
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const AppShell(isLoggedIn: true),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sign in failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isGoogleSignInLoading = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
@@ -68,16 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              // Back button
-              child: IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios_new),
-                style: IconButton.styleFrom(backgroundColor: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 4),
             // Logo
             const Center(
               child: Column(
@@ -238,20 +201,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(9),
                 ),
               ),
-              onPressed: _isGoogleSignInLoading ? null : _handleGoogleSignIn,
-              icon: _isGoogleSignInLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'G',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
+              onPressed: () async {
+                final user = await _authService.signInWithGoogle();
+                if (user != null) {
+                  // Navigate to home screen
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AppShell(isLoggedIn: true)),
+                  );
+                }
+              },
+              icon: FaIcon(FontAwesomeIcons.google, color: Colors.red),
               label: const Text(
                 'Continue with Google',
                 style: TextStyle(
@@ -333,17 +293,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios_new),
-                style: IconButton.styleFrom(backgroundColor: Colors.white),
-              ),
-            ),
-
             const SizedBox(height: 4),
-            
             const Text(
               'Create account',
               style: TextStyle(
