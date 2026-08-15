@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'app_shell.dart';
-import 'package:rapidpulse_my/auth_service.dart';
+import 'package:rapidpulse_my/google%20login/auth_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:rapidpulse_my/sql/database_helper.dart';
+import 'package:rapidpulse_my/model/user_model.dart';
+import 'package:rapidpulse_my/sql/session_manager.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,21 +17,56 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final emailController = TextEditingController();
+  final identifierController = TextEditingController();
   final passwordController = TextEditingController();
-
-  // Regular expression pattern for strict email format validation
-  final RegExp _emailRegExp = RegExp(
-    r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-  );
+  final databaseHelper = DatabaseHelper();
 
   final AuthService _authService = AuthService();
 
   bool isObsecured = true;
+  
+  Future<void> _handleLogin() async {
+    if (_formKey.currentState!.validate()) {
+      var result = await databaseHelper.login(
+        identifier: identifierController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        final User user = result['user'];
+
+        // Save user session
+        await SessionManager.saveUser(user);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AppShell(user: user)),
+        );
+      } else {
+        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
-    emailController.dispose();
+    identifierController.dispose();
     passwordController.dispose();
     super.dispose();
   }
@@ -89,18 +128,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   // Email field
                   TextFormField(
-                    controller: emailController,
+                    controller: identifierController,
                     decoration: InputDecoration(
-                      labelText: 'Email',
-                      hintText: 'Enter your email',
+                      labelText: 'Email or Username',
+                      hintText: 'Enter your email or username',
                       prefixIcon: Icon(Icons.mail_outline),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Email is required';
-                      }
-                      if (!_emailRegExp.hasMatch(value.trim())) {
-                        return 'Please enter a valid email';
+                        return 'Email/Username is required';
                       }
                       return null;
                     },
@@ -124,6 +163,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               : Icons.visibility_off_outlined,
                         ),
                       ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -133,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Forgot password button
                   Align(
                     alignment: Alignment.centerRight,
@@ -142,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextButton.styleFrom(
                         foregroundColor: red,
                         textStyle: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -160,14 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AppShell(isLoggedIn: true),
-                          ),
-                        );
-                      }
+                      _handleLogin();
                     },
                     child: const Text('Log In'),
                   ),
@@ -202,12 +237,24 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               onPressed: () async {
-                final user = await _authService.signInWithGoogle();
-                if (user != null) {
-                  // Navigate to home screen
+                final firebaseUser = await _authService.signInWithGoogle();
+                if (firebaseUser != null) {
+                  // Create a local User object from Firebase user
+                  final user = User(
+                    username: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'Google User',
+                    email: firebaseUser.email ?? '',
+                    phone: firebaseUser.phoneNumber ?? '',
+                    password: '', // No password for Google users
+                  );
+
+                  // Save session
+                  await SessionManager.saveUser(user);
+
+                  if (!mounted) return;
+
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const AppShell(isLoggedIn: true)),
+                    MaterialPageRoute(builder: (_) => AppShell(user: user)),
                   );
                 }
               },
@@ -229,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const Text(
                   "Don't have an account?",
-                  style: TextStyle(fontSize: 10, color: Color(0xFF8993A2)),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF8993A2)),
                 ),
                 TextButton(
                   onPressed: () => Navigator.push(
@@ -239,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextButton.styleFrom(
                     foregroundColor: red,
                     textStyle: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -268,6 +315,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+  final databaseHelper = DatabaseHelper();
 
   // Regular expression pattern for strict email format validation
   final RegExp _emailRegExp = RegExp(
@@ -276,12 +325,54 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   bool isObsecured = true;
 
+  Future<void> _handleSignUp() async {
+    if (_formKey.currentState!.validate()) {
+      var userData = User(
+        username: nameController.text.trim(),
+        email: emailController.text.trim(),
+        phone: phoneController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      var result = await databaseHelper.signUp(
+        username: userData.username,
+        email: userData.email,
+        phone: userData.phone,
+        password: confirmPasswordController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     nameController.dispose();
     emailController.dispose();
     phoneController.dispose();
     passwordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -320,13 +411,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       TextFormField(
                         controller: nameController,
                         decoration: InputDecoration(
-                          labelText: 'Full Name',
-                          hintText: 'Enter your full name',
+                          labelText: 'Username',
+                          hintText: 'Enter username',
                           prefixIcon: Icon(Icons.person_outline),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          )
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Full name is required';
+                            return 'Username is required';
                           }
                           return null;
                         },
@@ -338,6 +432,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           labelText: 'Email',
                           hintText: 'Enter your email',
                           prefixIcon: Icon(Icons.mail_outline),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          )
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -357,12 +454,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           prefixText: '+60 ',
                           labelText: 'Phone Number',
                           prefixIcon: Icon(Icons.phone_android_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          )
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Phone number is required';
                           }
-                          final phoneRegex = RegExp(r'^\d{10,11}$');
+                          final phoneRegex = RegExp(r'^\d{9,10}$');
                           if (!phoneRegex.hasMatch(value)) {
                             return 'Please enter a valid phone number';
                           }
@@ -386,10 +486,47 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   : Icons.visibility_off_outlined,
                             ),
                           ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          )
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Password is required';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Confirm password field
+                      TextFormField(
+                        controller: confirmPasswordController,
+                        obscureText: isObsecured,
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          hintText: 'Enter your password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            onPressed: () =>
+                                setState(() => isObsecured = !isObsecured),
+                            icon: Icon(
+                              isObsecured
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          )
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Confirm password is required';
+                          }
+                          if (value != passwordController.text) {
+                            return 'Passwords do not match';
                           }
                           return null;
                         },
@@ -450,14 +587,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                         onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AppShell(isLoggedIn: true),
-                              ),
-                            );
-                          }
+                          _handleSignUp();
                         },
                         child: const Text('Create Account'),
                       ),

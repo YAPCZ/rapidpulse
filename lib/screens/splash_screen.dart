@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rapidpulse_my/screens/auth_screens.dart';
+import 'package:rapidpulse_my/screens/app_shell.dart';
+import 'package:rapidpulse_my/sql/session_manager.dart';
 import '../theme/app_theme.dart';
 
 /// The app's launch screen. New users enter the dashboard as guests.
@@ -14,13 +16,27 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(const Duration(milliseconds: 1600), () {
-      if (!mounted) return;
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final user = await SessionManager.getUser();
+    
+    await Future.delayed(const Duration(milliseconds: 1600));
+
+    if (!mounted) return;
+
+    if (user != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => AppShell(user: user)),
+      );
+    } else {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
-    });
+    }
   }
 
   @override

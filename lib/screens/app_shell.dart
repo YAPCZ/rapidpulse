@@ -5,10 +5,12 @@ import 'live_map_screen.dart';
 import 'profile_screen.dart';
 import 'search_trip_screen.dart';
 import '../theme/app_theme.dart';
+import 'package:rapidpulse_my/model/user_model.dart';
 
 class AppShell extends StatefulWidget {
-  final bool isLoggedIn;
-  const AppShell({super.key, this.isLoggedIn = false});
+  final User user;
+
+  const AppShell({super.key, required this.user,});
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -20,7 +22,7 @@ class _AppShellState extends State<AppShell> {
     const SearchTripScreen(),
     const LiveMapScreen(),
     const AlertsScreen(),
-    ProfileScreen(isLoggedIn: widget.isLoggedIn),
+    ProfileScreen(user: widget.user),
   ];
   @override
   Widget build(BuildContext context) => Scaffold(
