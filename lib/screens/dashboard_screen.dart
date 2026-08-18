@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'trip_detail_screen.dart';
+import 'package:rapidpulse_my/model/user_model.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final User? user;
+  const DashboardScreen({super.key, this.user});
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(34, 24, 34, 16),
     children: [
       Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Good morning',
                   style: TextStyle(color: Color(0xFF6C727C), fontSize: 13),
                 ),
                 Text(
-                  'Hi, Aiman',
-                  style: TextStyle(
+                  'Hi, ${user?.username ?? 'Guest'}',
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: navy,

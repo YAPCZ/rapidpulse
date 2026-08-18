@@ -3,28 +3,35 @@ import '../theme/app_theme.dart';
 import 'auth_screens.dart';
 import 'package:rapidpulse_my/model/user_model.dart';
 import 'package:rapidpulse_my/sql/session_manager.dart';
+import 'package:rapidpulse_my/services/auth_service.dart';
 
 class ProfileScreen extends StatelessWidget {
-  final User user;
+  final User? user;
 
   const ProfileScreen({
     super.key,
-    required this.user,
+    this.user,
   });
 
   @override
-  Widget build(BuildContext context) =>
-    ListView(
+  Widget build(BuildContext context) {
+    final isGuest = user == null;
+    
+    return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 34,
-          backgroundColor: mint,
-          child: Icon(Icons.person, size: 40, color: teal),
+          backgroundColor: isGuest ? Colors.grey[200] : mint,
+          child: Icon(
+            isGuest ? Icons.person_outline : Icons.person,
+            size: 40,
+            color: isGuest ? Colors.grey : teal,
+          ),
         ),
         const SizedBox(height: 10),
         Text(
-          user.username,
+          isGuest ? 'Guest User' : user!.username,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 21,
@@ -32,7 +39,14 @@ class ProfileScreen extends StatelessWidget {
             color: navy,
           ),
         ),
-        Text(user.email, textAlign: TextAlign.center),
+        if (!isGuest)
+          Text(user!.email, textAlign: TextAlign.center)
+        else
+          const Text(
+            'Log in to sync your data across devices',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
         const SizedBox(height: 28),
         const Text(
           'Saved routes',
@@ -68,20 +82,36 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        TextButton.icon(
-          onPressed: () async {
-            await SessionManager.clearSession();
-            if (context.mounted) {
+        if (isGuest)
+          FilledButton.icon(
+            onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
                 (_) => false,
               );
-            }
-          },
-          icon: const Icon(Icons.logout, color: red),
-          label: const Text('Log out', style: TextStyle(color: red)),
-        ),
+            },
+            style: FilledButton.styleFrom(backgroundColor: red),
+            icon: const Icon(Icons.login),
+            label: const Text('Log In / Sign Up'),
+          )
+        else
+          TextButton.icon(
+            onPressed: () async {
+              await AuthService.instance.signOut();
+              await SessionManager.clearSession();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (_) => false,
+                );
+              }
+            },
+            icon: const Icon(Icons.logout, color: red),
+            label: const Text('Log out', style: TextStyle(color: red)),
+          ),
       ],
     );
+  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'trip_detail_screen.dart';
-import 'dashboard_screen.dart';
 
 class SearchTripScreen extends StatelessWidget {
   const SearchTripScreen({super.key});

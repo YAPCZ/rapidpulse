@@ -8,9 +8,9 @@ import '../theme/app_theme.dart';
 import 'package:rapidpulse_my/model/user_model.dart';
 
 class AppShell extends StatefulWidget {
-  final User user;
+  final User? user;
 
-  const AppShell({super.key, required this.user,});
+  const AppShell({super.key, this.user,});
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -18,7 +18,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   var index = 0;
   late final pages = [
-    const DashboardScreen(),
+    DashboardScreen(user: widget.user),
     const SearchTripScreen(),
     const LiveMapScreen(),
     const AlertsScreen(),

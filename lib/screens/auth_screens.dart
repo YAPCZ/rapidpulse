@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
 import 'app_shell.dart';
-import 'package:rapidpulse_my/google%20login/auth_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:rapidpulse_my/sql/database_helper.dart';
-import 'package:rapidpulse_my/model/user_model.dart';
-import 'package:rapidpulse_my/sql/session_manager.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,47 +16,147 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final identifierController = TextEditingController();
   final passwordController = TextEditingController();
-  final databaseHelper = DatabaseHelper();
-
-  final AuthService _authService = AuthService();
+  final forgotPasswordEmailController = TextEditingController();
 
   bool isObsecured = true;
-  
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (!mounted) return;
+
+      if (data.event == AuthChangeEvent.signedIn) {
+        final authUser = data.session?.user;
+
+        if (authUser != null) {
+          final user = AuthService.instance.userFromAuthUser(authUser);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AppShell(user: user),
+            ),
+          );
+        }
+      } else if (data.event == AuthChangeEvent.signedOut) {
+        setState(() => isLoading = false);
+      }
+    });
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.shade700 : null,
+      ),
+    );
+  }
+
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      var result = await databaseHelper.login(
-        identifier: identifierController.text.trim(),
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
+    try {
+      final user = await AuthService.instance.signInWithEmail(
+        email: identifierController.text.trim(),
         password: passwordController.text.trim(),
       );
 
       if (!mounted) return;
 
-      if (result['success'] == true) {
-        final User user = result['user'];
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => AppShell(user: user)),
+      );
+    } on AuthException catch (e) {
+      _showMessage(e.message, isError: true);
+    } catch (_) {
+      _showMessage('Something went wrong. Please try again.', isError: true);
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
 
-        // Save user session
-        await SessionManager.saveUser(user);
+  Future<void> _showForgotPasswordDialog() async {
+    forgotPasswordEmailController.clear();
 
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.green,
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset password'),
+        content: TextField(
+          controller: forgotPasswordEmailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'Email address',
+            hintText: 'you@example.com',
           ),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => AppShell(user: user)),
-        );
-      } else {
-        ScaffoldMessenger.of(context).removeCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
           ),
-        );
+          FilledButton(
+            onPressed: () async {
+              final email = forgotPasswordEmailController.text.trim();
+
+              if (email.isEmpty || !email.contains('@')) {
+                _showMessage('Enter your email above to reset your password.', isError: true);
+                return;
+              }
+
+              try {
+                await AuthService.instance.resetPassword(email);
+
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password reset email sent. Check your inbox.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } on AuthException catch (e) {
+                if (!dialogContext.mounted) return;
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text(e.message)),
+                );
+              }
+            },
+            child: const Text('Send email'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => isLoading = true);
+
+    try {
+      await AuthService.instance.signInWithGoogle();
+    } on AuthException catch (e) {
+      _showMessage(e.message, isError: true);
+
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      _showMessage(
+        'Google sign-in failed: $e',
+        isError: true,
+      );
+
+      if (mounted) {
+        setState(() => isLoading = false);
       }
     }
   }
@@ -68,6 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     identifierController.dispose();
     passwordController.dispose();
+    forgotPasswordEmailController.dispose();
     super.dispose();
   }
 
@@ -79,6 +177,16 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                onPressed: () => Navigator.push(
+                  context,             
+                  MaterialPageRoute(builder: (_) => AppShell(),
+                  ),),
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
             const SizedBox(height: 4),
             // Logo
             const Center(
@@ -130,8 +238,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: identifierController,
                     decoration: InputDecoration(
-                      labelText: 'Email or Username',
-                      hintText: 'Enter your email or username',
+                      labelText: 'Email',
+                      hintText: 'Enter your email',
                       prefixIcon: Icon(Icons.mail_outline),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -180,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: _showForgotPasswordDialog,
                       style: TextButton.styleFrom(
                         foregroundColor: red,
                         textStyle: const TextStyle(
@@ -201,10 +309,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: () {
-                      _handleLogin();
-                    },
-                    child: const Text('Log In'),
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            _handleLogin();
+                          },
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text('Log In'),
                   ),
                 ],
               ),
@@ -236,28 +355,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(9),
                 ),
               ),
-              onPressed: () async {
-                final firebaseUser = await _authService.signInWithGoogle();
-                if (firebaseUser != null) {
-                  // Create a local User object from Firebase user
-                  final user = User(
-                    username: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'Google User',
-                    email: firebaseUser.email ?? '',
-                    phone: firebaseUser.phoneNumber ?? '',
-                    password: '', // No password for Google users
-                  );
-
-                  // Save session
-                  await SessionManager.saveUser(user);
-
-                  if (!mounted) return;
-
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => AppShell(user: user)),
-                  );
-                }
-              },
+              onPressed: _handleGoogleSignIn,
               icon: FaIcon(FontAwesomeIcons.google, color: Colors.red),
               label: const Text(
                 'Continue with Google',
@@ -316,7 +414,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  final databaseHelper = DatabaseHelper();
 
   // Regular expression pattern for strict email format validation
   final RegExp _emailRegExp = RegExp(
@@ -324,45 +421,51 @@ class _SignUpScreenState extends State<SignUpScreen> {
   );
 
   bool isObsecured = true;
+  bool isLoading = false;
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.shade700 : null,
+      ),
+    );
+  }
 
   Future<void> _handleSignUp() async {
-    if (_formKey.currentState!.validate()) {
-      var userData = User(
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      final result = await AuthService.instance.signUp(
         username: nameController.text.trim(),
         email: emailController.text.trim(),
-        phone: phoneController.text.trim(),
         password: passwordController.text.trim(),
-      );
-
-      var result = await databaseHelper.signUp(
-        username: userData.username,
-        email: userData.email,
-        phone: userData.phone,
-        password: confirmPasswordController.text.trim(),
+        phone: phoneController.text.trim(),
       );
 
       if (!mounted) return;
 
-      if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.green,
-          ),
+      if (result.emailConfirmationRequired) {
+        _showMessage(
+          'Account created! Check your email to confirm before logging in.',
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).removeCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        Navigator.pop(context);
+        return;
       }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => AppShell(user: result.user)),
+      );
+    } on AuthException catch (e) {
+      _showMessage(e.message, isError: true);
+    } catch (_) {
+      _showMessage('Something went wrong. Please try again.', isError: true);
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -384,6 +487,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (Navigator.canPop(context))
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
             const SizedBox(height: 4),
             const Text(
               'Create account',
@@ -586,10 +697,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: () {
+                        onPressed: isLoading ? null : () {
                           _handleSignUp();
                         },
-                        child: const Text('Create Account'),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Create Account'),
                       ),
                     ],
                   ),
