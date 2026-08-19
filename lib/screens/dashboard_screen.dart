@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import 'trip_detail_screen.dart';
 import 'package:rapidpulse_my/model/user_model.dart';
 
+/// Main dashboard screen showing greeting, search bar, crowding info, and upcoming trips.
 class DashboardScreen extends StatelessWidget {
   final User? user;
   const DashboardScreen({super.key, this.user});
@@ -10,6 +11,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(34, 24, 34, 16),
     children: [
+      // Greeting section with user name and notification icon
       Row(
         children: [
           Expanded(
@@ -45,6 +47,7 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
       const SizedBox(height: 18),
+      // Search bar placeholder
       Container(
         height: 47,
         padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -61,6 +64,7 @@ class DashboardScreen extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 16),
+      // Live crowding trend section
       const Text(
         'LIVE NOW · KELANA JAYA LINE',
         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
@@ -93,6 +97,7 @@ class DashboardScreen extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 17),
+      // Upcoming trips list
       const Text(
         'UPCOMING TRIPS',
         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
@@ -127,12 +132,15 @@ class DashboardScreen extends StatelessWidget {
       ),
     ],
   );
+
+  /// Navigates to the trip detail screen.
   void _open(BuildContext context) => Navigator.push(
     context,
     MaterialPageRoute(builder: (_) => const TripDetailScreen()),
   );
 }
 
+/// A horizontal bar chart component that visualizes crowding levels over time.
 class CrowdBar extends StatelessWidget {
   const CrowdBar({super.key});
   @override
@@ -167,6 +175,7 @@ class CrowdBar extends StatelessWidget {
   );
 }
 
+/// A reusable card component to display details of a single trip.
 class TripCard extends StatelessWidget {
   final String title, destination, minutes, crowd;
   final Color color;
@@ -195,6 +204,7 @@ class TripCard extends StatelessWidget {
           children: [
             Row(
               children: [
+                // Transport mode icon
                 Container(
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
@@ -204,6 +214,7 @@ class TripCard extends StatelessWidget {
                   child: Icon(Icons.train_outlined, color: color, size: 19),
                 ),
                 const SizedBox(width: 11),
+                // Trip info: Name and Destination
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,6 +233,7 @@ class TripCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Timing info: Minutes and delay status
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -243,6 +255,7 @@ class TripCard extends StatelessWidget {
               child: Divider(height: 1),
             ),
             const SizedBox(height: 9),
+            // Crowding level indicator
             Row(
               children: [
                 const Text(
@@ -282,3 +295,4 @@ class TripCard extends StatelessWidget {
     ),
   );
 }
+

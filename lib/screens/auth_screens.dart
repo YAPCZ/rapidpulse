@@ -22,6 +22,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isObsecured = true;
   bool isLoading = false;
 
+  // Regular expression pattern for strict email format validation
+  final RegExp _emailRegExp = RegExp(
+    r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+  );
+
   @override
   void initState() {
     super.initState();
@@ -273,7 +278,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Email/Username is required';
+                        return 'Email is required';
+                      }
+                      if (!_emailRegExp.hasMatch(value.trim())) {
+                        return 'Please enter a valid email';
                       }
                       return null;
                     },

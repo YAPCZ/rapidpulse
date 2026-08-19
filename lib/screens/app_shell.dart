@@ -7,6 +7,7 @@ import 'search_trip_screen.dart';
 import '../theme/app_theme.dart';
 import 'package:rapidpulse_my/model/user_model.dart';
 
+/// The main application scaffold that manages bottom navigation and page switching.
 class AppShell extends StatefulWidget {
   final User? user;
 
@@ -16,7 +17,10 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  // Current active index in the bottom navigation bar
   var index = 0;
+
+  // List of screens corresponding to navigation destinations
   late final pages = [
     DashboardScreen(user: widget.user),
     const SearchTripScreen(),
@@ -57,3 +61,4 @@ class _AppShellState extends State<AppShell> {
     ),
   );
 }
+
