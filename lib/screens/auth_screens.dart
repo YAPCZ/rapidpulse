@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import 'app_shell.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../screens/term_and_cond.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -601,10 +602,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           if (value == null || value.isEmpty) {
                             return 'Phone number is required';
                           }
-                          final phoneRegex = RegExp(r'^\d{9,10}$');
+
+                          final phoneRegex = RegExp(r'^1[0-9]{8,9}$');
+
                           if (!phoneRegex.hasMatch(value)) {
-                            return 'Please enter a valid phone number';
+                            return 'Please enter a valid Malaysian phone number';
                           }
+
                           return null;
                         },
                       ),
@@ -678,7 +682,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         initialValue: false,
                         validator: (value) {
                           if (value != true) {
-                            return 'You must accept the terms to proceed.';
+                            return 'You must accept the Terms and Conditions.';
                           }
                           return null;
                         },
@@ -686,27 +690,57 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CheckboxListTile(
-                                contentPadding: EdgeInsets.zero,
-                                title: const Text(
-                                  'I agree to the Terms and Conditions',
-                                ),
-                                value: state.value ?? false,
-                                controlAffinity:
-                                    ListTileControlAffinity.leading,
-                                onChanged: (value) {
-                                  state.didChange(value);
-                                },
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Checkbox(
+                                    value: state.value ?? false,
+                                    onChanged: (value) {
+                                      state.didChange(value);
+                                    },
+                                  ),
+
+                                  Expanded(
+                                    child: Wrap(
+                                      children: [
+                                        const Text(
+                                          'I agree to the ',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+
+                                        GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const TermsAndConditionsPage(),
+                                              ),
+                                            );
+                                          },
+                                          child: const Text(
+                                            'Terms and Conditions',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: red,
+                                              fontWeight: FontWeight.bold,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
+
                               if (state.hasError)
                                 Padding(
                                   padding: const EdgeInsets.only(left: 12),
                                   child: Text(
                                     state.errorText!,
                                     style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .error,
+                                      color: Theme.of(context).colorScheme.error,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -717,6 +751,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
 
                       const SizedBox(height: 16),
+
                       FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: red,
