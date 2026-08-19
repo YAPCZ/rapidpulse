@@ -82,61 +82,86 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _showForgotPasswordDialog() async {
-    forgotPasswordEmailController.clear();
+ Future<void> _showForgotPasswordDialog() async {
+  forgotPasswordEmailController.clear();
 
-    await showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Reset password'),
-        content: TextField(
-          controller: forgotPasswordEmailController,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'Email address',
-            hintText: 'you@example.com',
-          ),
+  // Create a local form key specifically for this dialog
+  final dialogFormKey = GlobalKey<FormState>();
+
+  await showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Reset password'),
+      content: Form(
+        key: dialogFormKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Fix 2: Changed from TextField to TextFormField to support validation
+            TextFormField(
+              controller: forgotPasswordEmailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email address',
+                hintText: 'you@example.com',
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Email is required';
+                }
+                if (!value.contains('@')) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final email = forgotPasswordEmailController.text.trim();
-
-              if (email.isEmpty || !email.contains('@')) {
-                _showMessage('Enter your email above to reset your password.', isError: true);
-                return;
-              }
-
-              try {
-                await AuthService.instance.resetPassword(email);
-
-                if (!dialogContext.mounted) return;
-                Navigator.pop(dialogContext);
-
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Password reset email sent. Check your inbox.'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } on AuthException catch (e) {
-                if (!dialogContext.mounted) return;
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text(e.message)),
-                );
-              }
-            },
-            child: const Text('Send email'),
-          ),
-        ],
       ),
-    );
-  }
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () async {
+            if (!dialogFormKey.currentState!.validate()) return;
+
+            final email = forgotPasswordEmailController.text.trim();
+
+            try {
+              // Trigger the password reset OTP email
+              await AuthService.instance.resetPassword(email);
+
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext); // Close the dialog cleanly
+
+              if (!mounted) return;
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => VerifyOtpPage(email: email),
+                ),
+              );
+              
+            } on AuthException catch (e) {
+              if (!dialogContext.mounted) return;
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                SnackBar(
+                  content: Text(e.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          child: const Text('Send email'),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Future<void> _handleGoogleSignIn() async {
     setState(() => isLoading = true);
@@ -449,9 +474,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
 
       if (result.emailConfirmationRequired) {
-        _showMessage(
-          'Account created! Check your email to confirm before logging in.',
-        );
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Account created! Check your email to confirm before logging in.'),
+                backgroundColor: Colors.green.shade700
+              ),
+           );    
         Navigator.pop(context);
         return;
       }
@@ -747,4 +775,109 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     ),
   );
+}
+
+class   VerifyOtpPage extends StatefulWidget {
+  final String email;
+  
+  const VerifyOtpPage({super.key, required this.email});
+
+  @override
+  State<VerifyOtpPage> createState() => _VerifyOtpPageState();
+}
+
+class _VerifyOtpPageState extends State<VerifyOtpPage> {
+  final _formKey = GlobalKey<FormState>();
+  final otpController = TextEditingController();
+  final newPasswordController = TextEditingController();
+
+  bool isObsecured = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Verify OTP')),
+      body: Center(
+        child: 
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Enter the OTP sent to ${widget.email}'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: const InputDecoration(
+                      labelText: 'OTP',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter the OTP';
+                      }
+                      if (value.length != 6) {
+                        return 'OTP must be 6 digits';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    obscureText: isObsecured,
+                    controller: newPasswordController,
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                      onPressed: () =>
+                        setState(() => isObsecured = !isObsecured),
+                        icon: Icon(
+                          isObsecured
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a new password';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        // Handle OTP verification and password reset here
+                        final otp = otpController.text.trim();
+                        final newPassword = newPasswordController.text.trim();
+                        AuthService.instance.verifyOtpAndSetPassword(
+                          email: widget.email,
+                          token: otp,
+                          newPassword: newPassword,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Account created! Check your email to confirm before logging in.'),
+                              backgroundColor: Colors.green.shade700
+                            ),
+                        ); 
+                        Navigator.pop(context); // Go back to login screen after successful reset
+                      }
+                    },
+                    child: const Text('Verify OTP'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ),
+    );
+  }
 }

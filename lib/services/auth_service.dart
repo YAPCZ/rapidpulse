@@ -90,9 +90,45 @@ class AuthService {
       );
   }
 
+  // Refactored to catch/rethrow so your UI gets the exception message
   Future<void> resetPassword(String email) async {
-    await _client.auth.resetPasswordForEmail(email.trim());
+    try {
+      await _client.auth.resetPasswordForEmail(email.trim());
+    } on AuthException {
+      rethrow; 
+    } catch (error) {
+      throw AuthException(error.toString());
+    }
   }
+
+  // Refactored to pass session status or throw an explicit auth error back to UI
+  Future<void> verifyOtpAndSetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      // 1. Verify token with OtpType.recovery to create temporary local session
+      final AuthResponse response = await _client.auth.verifyOTP(
+        email: email.trim(),
+        token: token.trim(),
+        type: OtpType.recovery,
+      );
+
+      if (response.session == null) {
+        throw const AuthException('Verification failed: Code invalid or expired.');
+      }
+
+      // 2. Perform the update password update operation
+      await _client.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+    } on AuthException {
+      rethrow;
+    } catch (error) {
+      throw AuthException(error.toString());
+    }
+  } 
 
   Future<void> signOut() async {
     await _client.auth.signOut();
